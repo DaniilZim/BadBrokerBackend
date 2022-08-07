@@ -4,17 +4,13 @@ using BadBroker.Logic.Service;
 using BadBroker.MapperProfile;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using BadBroker.Logic.MapperProfile;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
+using Microsoft.AspNetCore.Diagnostics;
 
 namespace BadBroker
 {
@@ -62,14 +58,22 @@ namespace BadBroker
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            if (env.IsDevelopment())
+            app.UseExceptionHandler(exceptionHandlerApp =>
             {
-                app.UseDeveloperExceptionPage();
-            }
-            else
-            {
-                app.UseExceptionHandler();
-            }
+                exceptionHandlerApp.Run(async context =>
+                {
+                    context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                    context.Response.ContentType = "application/json";
+
+                    var ex = context.Features.Get<IExceptionHandlerFeature>();
+
+                    if (ex != null)
+                    {
+                        await context.Response.WriteAsync(JsonConvert.SerializeObject(new { errmsg = ex.Error.Message }));
+                    }
+
+                });
+            });
 
             app.UseSwagger();
 
