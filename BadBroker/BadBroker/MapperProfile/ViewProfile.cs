@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using BadBroker.DAL.Model;
 using BadBroker.Logic.DTO;
 using BadBroker.ViewModel;
 using System;
@@ -11,59 +12,64 @@ namespace BadBroker.MapperProfile
     {
         public ViewProfile()
         {
-            //MapRate();
             MapBestStrategy();
         }
 
         public void MapBestStrategy()
         {
             CreateMap<BestStrategyViewModel, BestStrategyDto>()
-                .ForMember(dest => dest.Tool, opt => opt.MapFrom(src => Enum.Parse(typeof(CurrencyEnum), src.Tool)))
-                .ForMember(dest => dest.Rates, opt => opt.Ignore())
+                .ForMember(dest => dest.CurrencyPairRates, opt => opt.Ignore())
                 .ReverseMap()
-                .ForMember(dest => dest.Tool, opt => opt.MapFrom(src => src.Tool.ToString()))
                 .ForMember(dest => dest.Rates, opt => opt.Ignore())
-                .ForMember(dest => dest.BuyDate, opt => opt.MapFrom(src => src.BuyDate.ToString("yyyy-MM-dd")))
-                .ForMember(dest => dest.SellDate, opt => opt.MapFrom(src => src.SellDate.ToString("yyyy-MM-dd") ))
                 .AfterMap((src, dest) => 
                 {
+                    dest.Revenue = decimal.MinValue;
+
                     var rates = new List<RateViewModel>();
-                    
-                    foreach (var rate in src.Rates)
+
+                    foreach (var cpr in src.CurrencyPairRates.OrderBy(x => x.CounterCurrencyId))
                     {
-                        var rateVm = new RateViewModel { Date = rate.DateTrunc.ToString("yyyy-MM-dd")};
+                        foreach (var rate in cpr.Rates)
+                        {
+                            var rateVM = rates.SingleOrDefault(x => x.Date == rate.DateTrunc.ToString("yyyy-MM-dd"));
 
-                        if (src.Tool == CurrencyEnum.RUB)
-                            rateVm.Rub = rate.Value;
-                        else if (src.Tool == CurrencyEnum.EUR)
-                            rateVm.Eur = rate.Value;
-                        else if (src.Tool == CurrencyEnum.JPY)
-                            rateVm.Jpy = rate.Value;
-                        else if (src.Tool == CurrencyEnum.GBP)
-                            rateVm.Gbp = rate.Value;
+                            if (rateVM == default)
+                            {
+                                rateVM = new RateViewModel();
+                                rateVM.Date = rate.DateTrunc.ToString("yyyy-MM-dd");
 
-                        rates.Add(rateVm);
+                                rates.Add(rateVM);
+                            }
+
+                            if (cpr.Tool == CurrencyEnum.RUB)
+                            {
+                                rateVM.Rub = rate.Value;
+                            }
+                            else if (cpr.Tool == CurrencyEnum.EUR)
+                            {
+                                rateVM.Eur = rate.Value;
+                            }
+                            else if (cpr.Tool == CurrencyEnum.GBP)
+                            {
+                                rateVM.Gbp = rate.Value;
+                            }
+                            else if (cpr.Tool == CurrencyEnum.JPY)
+                            {
+                                rateVM.Jpy = rate.Value;
+                            }
+                        }
+
+                        if (dest.Revenue < cpr.Revenue)
+                        {
+                            dest.Revenue = cpr.Revenue;
+                            dest.Tool = cpr.Tool.ToString();
+                            dest.BuyDate = cpr.BuyDate.ToString("yyyy-MM-dd");
+                            dest.SellDate = cpr.SellDate.ToString("yyyy-MM-dd");
+                        }
                     }
 
                     dest.Rates = rates;
                 });
         }
-
-        /*
-        public void MapRate()
-        {
-            CreateMap<RateViewModel, RateDto>()
-                .ForMember(dest => dest.DateTrunc, opt => opt.MapFrom(src => src.Date))
-                .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.Value, opt => opt.Ignore())
-                .ReverseMap()
-                .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.DateTrunc))
-                .ForMember(dest => dest.Rub, opt => opt.Ignore())
-                .ForMember(dest => dest.Eur, opt => opt.Ignore())
-                .ForMember(dest => dest.Jpy, opt => opt.Ignore())
-                .ForMember(dest => dest.Gbp, opt => opt.Ignore())
-                ;
-        }
-        */
     }
 }

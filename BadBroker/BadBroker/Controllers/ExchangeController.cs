@@ -1,11 +1,10 @@
 ﻿using AutoMapper;
-using BadBroker.Extension;
+using BadBroker.Logic.DTO;
 using BadBroker.Logic.Service;
 using BadBroker.ViewModel;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
 
 namespace BadBroker.Controllers
 {
@@ -31,11 +30,11 @@ namespace BadBroker.Controllers
         [Route("[controller]/[action]")]
         public ActionResult Best(DateTime startDate, DateTime endDate, decimal moneyUsd)
         {
-            var tmp = _exchangeService.GetBestStrategy(startDate, endDate, moneyUsd, "USD");
+            var tmp = _exchangeService.GetBestStrategy(startDate, endDate, moneyUsd, CurrencyEnum.USD.ToString());
 
-            var tmp1 = _mapper.Map<List<BestStrategyViewModel>>(tmp);
+            var tmp1 = _mapper.Map<BestStrategyViewModel>(tmp);
 
-            return Ok(tmp1.DistinctBestStrategy());
+            return Ok(tmp1);
         }
     }
 }

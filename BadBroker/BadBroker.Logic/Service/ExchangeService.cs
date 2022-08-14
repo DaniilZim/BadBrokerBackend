@@ -13,7 +13,7 @@ namespace BadBroker.Logic.Service
 {
     public interface IExchangeService
     {
-        IEnumerable<BestStrategyDto> GetBestStrategy(DateTime startDate, DateTime endDate, decimal money, string baseCurrency);
+        BestStrategyDto GetBestStrategy(DateTime startDate, DateTime endDate, decimal money, string baseCurrency);
     }
 
     public class ExchangeService : IExchangeService
@@ -38,7 +38,7 @@ namespace BadBroker.Logic.Service
             _mapper = mapper;
         }
 
-        public IEnumerable<BestStrategyDto> GetBestStrategy(DateTime startDate, DateTime endDate, decimal money, string baseCurrencyKey)
+        public BestStrategyDto GetBestStrategy(DateTime startDate, DateTime endDate, decimal money, string baseCurrencyKey)
         {
             try
             {
@@ -59,7 +59,7 @@ namespace BadBroker.Logic.Service
                 if (counterCurrencies == null || !counterCurrencies.Any())
                     throw new CounterCurrencyNotFoundException();
 
-                var results = new List<BestStrategyDto>();
+                var results = new List<CurrencyPairRateDto>();
 
                 foreach (var counterCurrency in counterCurrencies)
                 {
@@ -107,7 +107,7 @@ namespace BadBroker.Logic.Service
                     results.Add(result);
                 }
 
-                return results;
+                return new BestStrategyDto { CurrencyPairRates = results };
             }
             catch(Exception e)
             {
@@ -116,12 +116,12 @@ namespace BadBroker.Logic.Service
             }
         }
 
-        private BestStrategyDto CalculateBestStrategy(IEnumerable<RateDto> rates, decimal money)
+        private CurrencyPairRateDto CalculateBestStrategy(IEnumerable<RateDto> rates, decimal money)
         {
             if (rates == null)
                 throw new ArgumentNullException();
 
-            var result = new BestStrategyDto { Rates = rates };
+            var result = new CurrencyPairRateDto { Rates = rates };
             var dateBuy = result.BuyDate = rates.Min(x => x.DateTrunc);
             var dateSell = result.SellDate = rates.Max(x => x.DateTrunc);
             var revenue = result.Revenue = decimal.MinValue;
